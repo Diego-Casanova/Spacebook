@@ -29,15 +29,40 @@ COPY --from=build /app/dist/spacebook/browser /usr/share/nginx/html
 # Verificar que se copiaron los archivos
 RUN echo "Contenido de /usr/share/nginx/html:" && ls -la /usr/share/nginx/html/
 
-# Copiar template de configuración de Nginx
-COPY nginx.conf.template /etc/nginx/nginx.conf.template
+# Crear configuración de Nginx directamente
+RUN rm /etc/nginx/conf.d/default.conf && \
+    cat > /etc/nginx/nginx.conf <<'EOF'
+events {
+    worker_connections 1024;
+}
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+    server {
+        listen 8080;
+        server_name localhost;
+        root /usr/share/nginx/html;
+        index index.html;
+        gzip on;
+        gzip_vary on;
+        gzip_min_length 1024;
+        gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
+        location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
+            expires 1y;
+            add_header Cache-Control "public, immutable";
+        }
+        location / {
+            try_files $uri $uri/ /index.html;
+        }
+        add_header X-Frame-Options "SAMEORIGIN" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+    }
+}
+EOF
 
-# Copiar script de inicio
-COPY start-nginx.sh /start-nginx.sh
-RUN chmod +x /start-nginx.sh
-
-# Exponer el puerto (Cloud Run usa la variable PORT)
+# Exponer el puerto
 EXPOSE 8080
 
-# Comando para iniciar Nginx con el puerto dinámico
-CMD ["/start-nginx.sh"]
+# Comando para iniciar Nginx
+CMD ["nginx", "-g", "daemon off;"]
