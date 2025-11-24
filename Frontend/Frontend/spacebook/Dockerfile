@@ -19,14 +19,18 @@ RUN npm run build
 # Etapa 2: Servir con Nginx
 FROM nginx:alpine
 
-# Copiar la configuración personalizada de Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
-
 # Copiar los archivos construidos desde la etapa de build
 COPY --from=build /app/dist/spacebook/browser /usr/share/nginx/html
 
-# Exponer el puerto 80
-EXPOSE 80
+# Copiar la configuración personalizada de Nginx
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Comando para iniciar Nginx
-CMD ["nginx", "-g", "daemon off;"]
+# Copiar script de inicio
+COPY start-nginx.sh /start-nginx.sh
+RUN chmod +x /start-nginx.sh
+
+# Exponer el puerto (Cloud Run usa la variable PORT)
+EXPOSE 8080
+
+# Comando para iniciar Nginx con el puerto dinámico
+CMD ["/start-nginx.sh"]
