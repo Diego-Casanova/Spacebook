@@ -22,8 +22,8 @@ FROM nginx:alpine
 # Copiar los archivos construidos desde la etapa de build
 COPY --from=build /app/dist/spacebook/browser /usr/share/nginx/html
 
-# Copiar la configuración personalizada de Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
+# Copiar template de configuración de Nginx
+COPY nginx.conf.template /etc/nginx/nginx.conf.template
 
 # Copiar script de inicio
 COPY start-nginx.sh /start-nginx.sh
