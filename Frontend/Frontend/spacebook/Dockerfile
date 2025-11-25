@@ -1,52 +1,27 @@
-# Etapa 1: Construcción
-FROM node:20-alpine AS build
+# Paso 1: Construir la app Angular
+FROM node:18 AS builder
 
-# Establecer directorio de trabajo
+# Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar archivos de dependencias
-COPY package*.json ./
-
-# Instalar dependencias
-RUN npm ci --legacy-peer-deps
-
-# Copiar el código fuente
+# Copia los archivos del frontend al contenedor
 COPY . .
 
-# Construir la aplicación para producción
-RUN npm run build
+# Instalar dependencias y compilar la app en modo producción
+RUN npm install
+RUN npm run build -- --configuration production
 
-# Listar el contenido para debug
-RUN echo "Contenido de /app/dist:" && ls -la /app/dist/ || echo "dist no existe"
-RUN echo "Contenido de /app/dist/spacebook:" && ls -la /app/dist/spacebook/ || echo "spacebook no existe"
-
-# Etapa 2: Servir con Nginx
+# Paso 2: Servir la app compilada con NGINX
 FROM nginx:alpine
 
-# Copiar los archivos construidos desde la etapa de build
-COPY --from=build /app/dist/spacebook/browser /usr/share/nginx/html
+# (Opcional) Copia configuración personalizada de NGINX si la tienes
+COPY nginx.conf /etc/nginx/nginx.conf
 
-# Verificar que se copiaron los archivos
-RUN echo "Contenido de /usr/share/nginx/html:" && ls -la /usr/share/nginx/html/
+# Copia el resultado del build Angular al directorio que sirve NGINX
+COPY --from=builder /app/dist/spacebook/browser /usr/share/nginx/html
 
-# Crear configuración de Nginx
-RUN rm /etc/nginx/conf.d/default.conf && \
-    echo 'events { worker_connections 1024; }' > /etc/nginx/nginx.conf && \
-    echo 'http {' >> /etc/nginx/nginx.conf && \
-    echo '  include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
-    echo '  default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
-    echo '  server {' >> /etc/nginx/nginx.conf && \
-    echo '    listen 8080;' >> /etc/nginx/nginx.conf && \
-    echo '    server_name localhost;' >> /etc/nginx/nginx.conf && \
-    echo '    root /usr/share/nginx/html;' >> /etc/nginx/nginx.conf && \
-    echo '    index index.html;' >> /etc/nginx/nginx.conf && \
-    echo '    gzip on;' >> /etc/nginx/nginx.conf && \
-    echo '    location / { try_files $uri $uri/ /index.html; }' >> /etc/nginx/nginx.conf && \
-    echo '  }' >> /etc/nginx/nginx.conf && \
-    echo '}' >> /etc/nginx/nginx.conf
-
-# Exponer el puerto
+# Expone el puerto que usará Cloud Run
 EXPOSE 8080
 
-# Comando para iniciar Nginx
+# Comando por defecto para iniciar NGINX
 CMD ["nginx", "-g", "daemon off;"]
