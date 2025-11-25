@@ -1,5 +1,5 @@
 # Paso 1: Construir la app Angular
-FROM node:18 AS builder
+FROM node:22.17 AS builder
 
 # Establece el directorio de trabajo dentro del contenedor
 WORKDIR /app
