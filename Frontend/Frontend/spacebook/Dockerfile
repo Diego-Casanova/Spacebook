@@ -29,37 +29,21 @@ COPY --from=build /app/dist/spacebook/browser /usr/share/nginx/html
 # Verificar que se copiaron los archivos
 RUN echo "Contenido de /usr/share/nginx/html:" && ls -la /usr/share/nginx/html/
 
-# Crear configuración de Nginx directamente
+# Crear configuración de Nginx
 RUN rm /etc/nginx/conf.d/default.conf && \
-    cat > /etc/nginx/nginx.conf <<'EOF'
-events {
-    worker_connections 1024;
-}
-http {
-    include /etc/nginx/mime.types;
-    default_type application/octet-stream;
-    server {
-        listen 8080;
-        server_name localhost;
-        root /usr/share/nginx/html;
-        index index.html;
-        gzip on;
-        gzip_vary on;
-        gzip_min_length 1024;
-        gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml+rss application/json;
-        location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
-            expires 1y;
-            add_header Cache-Control "public, immutable";
-        }
-        location / {
-            try_files $uri $uri/ /index.html;
-        }
-        add_header X-Frame-Options "SAMEORIGIN" always;
-        add_header X-Content-Type-Options "nosniff" always;
-        add_header X-XSS-Protection "1; mode=block" always;
-    }
-}
-EOF
+    echo 'events { worker_connections 1024; }' > /etc/nginx/nginx.conf && \
+    echo 'http {' >> /etc/nginx/nginx.conf && \
+    echo '  include /etc/nginx/mime.types;' >> /etc/nginx/nginx.conf && \
+    echo '  default_type application/octet-stream;' >> /etc/nginx/nginx.conf && \
+    echo '  server {' >> /etc/nginx/nginx.conf && \
+    echo '    listen 8080;' >> /etc/nginx/nginx.conf && \
+    echo '    server_name localhost;' >> /etc/nginx/nginx.conf && \
+    echo '    root /usr/share/nginx/html;' >> /etc/nginx/nginx.conf && \
+    echo '    index index.html;' >> /etc/nginx/nginx.conf && \
+    echo '    gzip on;' >> /etc/nginx/nginx.conf && \
+    echo '    location / { try_files $uri $uri/ /index.html; }' >> /etc/nginx/nginx.conf && \
+    echo '  }' >> /etc/nginx/nginx.conf && \
+    echo '}' >> /etc/nginx/nginx.conf
 
 # Exponer el puerto
 EXPOSE 8080
